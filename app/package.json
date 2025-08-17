@@ -1,0 +1,25 @@
+{
+    "name": "learning-app",
+    "version": "1.0.0",
+    "description": "A simple twelve-factor app for learning purposes",
+    "main": "app.js",
+    "scripts": {
+        "start": "node app.js",
+        "dev": "node app.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "sqlite3": "^5.1.7",
+        "mysql2": "^3.14.3",
+        "winston": "^3.17.0",
+        "ejs": "^3.1.10"
+    },
+    "keywords": [
+        "twelve-factor",
+        "learning",
+        "container",
+        "demo"
+    ],
+    "author": "TSC Labs",
+    "license": "Apache-2.0"
+}

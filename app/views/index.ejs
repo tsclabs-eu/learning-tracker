@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Tracker - TSC Labs</title>
+    <style>
+        :root {
+            --vp-c-brand-1: #004d5d;
+            --vp-c-brand-2: #2e888b;
+            --vp-c-brand-3: #004d5d;
+            --vp-c-white: #ffffff;
+            --vp-c-black: #000000;
+            --vp-c-gray-1: #dddde3;
+            --vp-c-gray-2: #e4e4e9;
+            --vp-c-gray-3: #ebebef;
+            --vp-c-gray-soft: rgba(142, 150, 170, .14);
+            --vp-c-bg: #ffffff;
+            --vp-c-bg-alt: #f6f6f7;
+            --vp-c-bg-soft: #f6f6f7;
+            --vp-c-text-1: #3c3c43;
+            --vp-c-text-2: #67676c;
+            --vp-c-text-3: #929295;
+            --vp-c-border: #c2c2c4;
+            --vp-c-divider: #e2e2e3;
+            --vp-c-success-1: #18794e;
+            --vp-c-success-soft: rgba(16, 185, 129, .14);
+            --vp-c-danger-1: #b8272c;
+            --vp-c-danger-soft: rgba(244, 63, 94, .14);
+            --vp-font-family-base: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: var(--vp-font-family-base);
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--vp-c-text-1);
+            background-color: var(--vp-c-bg);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .navbar {
+            background-color: var(--vp-c-bg);
+            border-bottom: 1px solid var(--vp-c-divider);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--vp-c-brand-1);
+            text-decoration: none;
+        }
+
+        .nav-brand img {
+            height: 32px;
+            width: auto;
+        }
+
+        .main-container {
+            max-width: 1152px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .hero-title {
+            margin: 0 0 16px 0;
+            font-size: 48px;
+            font-weight: 500;
+            line-height: 1.2;
+            color: var(--vp-c-text-1);
+        }
+
+        .hero-title .brand-name {
+            color: var(--vp-c-brand-1);
+            background: linear-gradient(135deg, var(--vp-c-brand-1), var(--vp-c-brand-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-tagline {
+            margin: 0 0 32px 0;
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--vp-c-text-2);
+            max-width: 640px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .app-section {
+            background-color: var(--vp-c-bg-soft);
+            border: 1px solid var(--vp-c-divider);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            margin: 0 0 24px 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--vp-c-text-1);
+            text-align: center;
+        }
+
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--vp-c-text-1);
+        }
+
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--vp-c-border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background-color: var(--vp-c-bg);
+            color: var(--vp-c-text-1);
+            transition: border-color 0.25s, box-shadow 0.25s;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--vp-c-brand-1);
+            box-shadow: 0 0 0 3px rgba(0, 77, 93, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            background-color: var(--vp-c-brand-1);
+            color: var(--vp-c-white);
+            cursor: pointer;
+            transition: background-color 0.25s, transform 0.1s;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--vp-c-brand-2);
+        }
+
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        .btn-danger {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            background-color: var(--vp-c-danger-1);
+            color: var(--vp-c-white);
+            cursor: pointer;
+            transition: opacity 0.25s;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.8;
+        }
+
+        .btn-success {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            background-color: var(--vp-c-success-1);
+            color: var(--vp-c-white);
+            cursor: pointer;
+            transition: opacity 0.25s;
+            margin-right: 8px;
+        }
+
+        .btn-success:hover {
+            opacity: 0.8;
+        }
+
+        .btn-secondary {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            background-color: var(--vp-c-text-3);
+            color: var(--vp-c-white);
+            cursor: pointer;
+            transition: opacity 0.25s;
+            margin-right: 8px;
+        }
+
+        .btn-secondary:hover {
+            opacity: 0.8;
+        }
+
+        .learning-items {
+            display: grid;
+            gap: 12px;
+        }
+
+        /* Kanban Board Styles */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .kanban-column {
+            background-color: var(--vp-c-bg-soft);
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 200px;
+        }
+
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--vp-c-divider);
+        }
+
+        .column-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--vp-c-text-1);
+        }
+
+        .item-count {
+            background-color: var(--vp-c-brand-1);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        /* Add Goal Button */
+        .add-goal-btn {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed var(--vp-c-divider);
+            border-radius: 8px;
+            background-color: transparent;
+            color: var(--vp-c-text-3);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-bottom: 16px;
+        }
+
+        .add-goal-btn:hover {
+            border-color: var(--vp-c-brand-1);
+            color: var(--vp-c-brand-1);
+            background-color: rgba(0, 77, 93, 0.05);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: var(--vp-c-bg);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            padding: 24px 24px 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--vp-c-divider);
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--vp-c-text-1);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--vp-c-text-3);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--vp-c-text-1);
+            background-color: var(--vp-c-bg-soft);
+        }
+
+        .modal-body {
+            padding: 0 24px 24px 24px;
+        }
+
+        .learning-item {
+            padding: 12px;
+            border: 1px solid var(--vp-c-divider);
+            border-radius: 8px;
+            background-color: var(--vp-c-bg);
+            transition: border-color 0.25s, box-shadow 0.25s, opacity 0.25s, transform 0.25s;
+            cursor: move;
+            position: relative;
+            user-select: none;
+            margin-bottom: 8px;
+        }
+
+        .learning-item:hover {
+            border-color: var(--vp-c-brand-2);
+            box-shadow: 0 2px 8px rgba(0, 77, 93, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .learning-item.resolved {
+            opacity: 0.7;
+            border-color: var(--vp-c-success-1);
+            background-color: var(--vp-c-success-soft);
+        }
+
+        .learning-item.resolved .item-title {
+            text-decoration: line-through;
+            color: var(--vp-c-success-1);
+        }
+
+        .learning-item.progress {
+            border-color: var(--vp-c-brand-2);
+            background-color: rgba(46, 136, 139, 0.1);
+        }
+
+        .learning-item.progress .item-title {
+            color: var(--vp-c-brand-2);
+        }
+
+        .learning-item.dragging {
+            opacity: 0.7;
+            transform: rotate(2deg) scale(1.02);
+            box-shadow: 0 8px 24px rgba(0, 77, 93, 0.2);
+            z-index: 1000;
+        }
+
+        .learning-item.drag-over {
+            border-color: var(--vp-c-brand-1);
+            border-width: 2px;
+            background-color: rgba(0, 77, 93, 0.05);
+            transform: scale(1.02);
+        }
+
+        .drag-handle {
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--vp-c-text-3);
+            cursor: grab;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 4px 2px;
+            border-radius: 4px;
+            transition: all 0.25s;
+        }
+
+        .drag-handle:hover {
+            color: var(--vp-c-brand-1);
+            background-color: rgba(0, 77, 93, 0.1);
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .item-content {
+            margin-left: 20px;
+        }
+
+        .item-title {
+            margin: 0 0 6px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--vp-c-text-1);
+            line-height: 1.3;
+        }
+
+        .item-description {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            color: var(--vp-c-text-2);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .item-date {
+            font-size: 11px;
+            color: var(--vp-c-text-3);
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        /* Compact Button Styles */
+        .btn-compact {
+            padding: 4px 6px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-compact.btn-success {
+            background-color: var(--vp-c-success-1);
+            color: white;
+        }
+
+        .btn-compact.btn-success:hover {
+            background-color: #0f6b3e;
+            transform: scale(1.05);
+        }
+
+        .btn-compact.btn-secondary {
+            background-color: var(--vp-c-text-3);
+            color: white;
+        }
+
+        .btn-compact.btn-secondary:hover {
+            background-color: var(--vp-c-text-2);
+            transform: scale(1.05);
+        }
+
+        .btn-compact.btn-danger {
+            background-color: var(--vp-c-danger-1);
+            color: white;
+        }
+
+        .btn-compact.btn-danger:hover {
+            background-color: #a0242a;
+            transform: scale(1.05);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--vp-c-text-2);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .error-message {
+            padding: 16px;
+            margin-bottom: 24px;
+            border: 1px solid var(--vp-c-danger-1);
+            border-radius: 8px;
+            background-color: var(--vp-c-danger-soft);
+            color: var(--vp-c-danger-1);
+            font-weight: 500;
+        }
+
+        .footer {
+            margin-top: 64px;
+            padding: 32px 0;
+            border-top: 1px solid var(--vp-c-divider);
+            text-align: center;
+            color: var(--vp-c-text-3);
+            font-size: 14px;
+        }
+
+        .disclaimer {
+            max-width: 500px;
+            margin: 20px auto 0;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            color: #495057;
+            font-size: 13px;
+            line-height: 1.6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .disclaimer strong {
+            color: var(--vp-c-brand-1);
+            font-size: 14px;
+        }
+
+        .disclaimer p {
+            margin: 0;
+        }
+
+        .disclaimer p:first-child {
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                padding: 0 16px;
+            }
+
+            .main-container {
+                padding: 32px 16px;
+            }
+
+            .hero-title {
+                font-size: 36px;
+            }
+
+            .hero-tagline {
+                font-size: 18px;
+            }
+
+            .app-section {
+                padding: 24px;
+            }
+
+            .kanban-board {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .kanban-column {
+                padding: 12px;
+            }
+
+            .learning-item {
+                padding: 10px;
+            }
+
+            .item-content {
+                margin-left: 16px;
+            }
+
+            .drag-handle {
+                left: 4px;
+                font-size: 12px;
+            }
+
+            .item-title {
+                font-size: 13px;
+            }
+
+            .item-description {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <img src="/assets/tsclabs-logo.webp" alt="TSC Labs" />
+                Learning Tracker
+            </a>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <section class="app-section">
+            <% if (error) { %>
+                <div class="error-message">
+                    <%= error %>
+                </div>
+                <% } %>
+
+                    <div class="section-title">Your Learning Goals</div>
+
+                    <% if (items.length===0) { %>
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📚</div>
+                            <p>No learning goals yet. Click the "Add Goal" button below to get started!</p>
+                        </div>
+                        <% } %>
+
+                            <div class="kanban-board">
+                                <div class="kanban-column">
+                                    <div class="column-header">
+                                        <h3 class="column-title">📋 To Do</h3>
+                                        <span class="item-count">
+                                            <%= items.filter(item=> item.status === 'todo' || (!item.status &&
+                                                !item.resolved)).length %>
+                                        </span>
+                                    </div>
+                                    <button class="add-goal-btn" onclick="openModal()">
+                                        ➕ Add Learning Goal
+                                    </button>
+                                    <div class="learning-items todo-items" id="todo-items">
+                                        <% items.filter(item=> item.status === 'todo' || (!item.status &&
+                                            !item.resolved)).forEach(item => { %>
+                                            <div class="learning-item" data-id="<%= item.id %>" data-status="todo"
+                                                data-order="<%= item.order_index || 0 %>">
+                                                <div class="drag-handle" draggable="true">⋮⋮</div>
+                                                <div class="item-content">
+                                                    <h4 class="item-title">
+                                                        <%= item.title %>
+                                                    </h4>
+                                                    <p class="item-description">
+                                                        <%= item.description %>
+                                                    </p>
+                                                    <div class="item-footer">
+                                                        <span class="item-date">
+                                                            <%= new Date(item.created_at).toLocaleDateString() %>
+                                                        </span>
+                                                        <div class="item-actions">
+                                                            <button class="btn-compact btn-success"
+                                                                onclick="updateStatus(<%= item.id %>, 'progress')"
+                                                                title="Start Working">▶</button>
+                                                            <button class="btn-compact btn-danger"
+                                                                onclick="deleteItem(<%= item.id %>)"
+                                                                title="Delete">×</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% }) %>
+                                    </div>
+                                </div>
+
+                                <div class="kanban-column">
+                                    <div class="column-header">
+                                        <h3 class="column-title">🔄 In Progress</h3>
+                                        <span class="item-count">
+                                            <%= items.filter(item=> item.status === 'progress').length %>
+                                        </span>
+                                    </div>
+                                    <div class="learning-items progress-items" id="progress-items">
+                                        <% items.filter(item=> item.status === 'progress').forEach(item => { %>
+                                            <div class="learning-item progress" data-id="<%= item.id %>"
+                                                data-status="progress" data-order="<%= item.order_index || 0 %>">
+                                                <div class="drag-handle" draggable="true">⋮⋮</div>
+                                                <div class="item-content">
+                                                    <h4 class="item-title">
+                                                        <%= item.title %>
+                                                    </h4>
+                                                    <p class="item-description">
+                                                        <%= item.description %>
+                                                    </p>
+                                                    <div class="item-footer">
+                                                        <span class="item-date">
+                                                            <%= new Date(item.created_at).toLocaleDateString() %>
+                                                        </span>
+                                                        <div class="item-actions">
+                                                            <button class="btn-compact btn-secondary"
+                                                                onclick="updateStatus(<%= item.id %>, 'todo')"
+                                                                title="Move to Todo">↶</button>
+                                                            <button class="btn-compact btn-success"
+                                                                onclick="updateStatus(<%= item.id %>, 'completed')"
+                                                                title="Mark Complete">✓</button>
+                                                            <button class="btn-compact btn-danger"
+                                                                onclick="deleteItem(<%= item.id %>)"
+                                                                title="Delete">×</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% }) %>
+                                    </div>
+                                </div>
+
+                                <div class="kanban-column">
+                                    <div class="column-header">
+                                        <h3 class="column-title">✅ Completed</h3>
+                                        <span class="item-count">
+                                            <%= items.filter(item=> item.status === 'completed' || (item.resolved &&
+                                                !item.status)).length %>
+                                        </span>
+                                    </div>
+                                    <div class="learning-items completed-items" id="completed-items">
+                                        <% items.filter(item=> item.status === 'completed' || (item.resolved &&
+                                            !item.status)).forEach(item => { %>
+                                            <div class="learning-item resolved" data-id="<%= item.id %>"
+                                                data-status="completed" data-order="<%= item.order_index || 0 %>">
+                                                <div class="drag-handle" draggable="true">⋮⋮</div>
+                                                <div class="item-content">
+                                                    <h4 class="item-title">
+                                                        <%= item.title %>
+                                                    </h4>
+                                                    <p class="item-description">
+                                                        <%= item.description %>
+                                                    </p>
+                                                    <div class="item-footer">
+                                                        <span class="item-date">
+                                                            <%= new Date(item.created_at).toLocaleDateString() %>
+                                                        </span>
+                                                        <div class="item-actions">
+                                                            <button class="btn-compact btn-secondary"
+                                                                onclick="updateStatus(<%= item.id %>, 'todo')"
+                                                                title="Reopen">↶</button>
+                                                            <button class="btn-compact btn-danger"
+                                                                onclick="deleteItem(<%= item.id %>)"
+                                                                title="Delete">×</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% }) %>
+                                    </div>
+                                </div>
+                            </div>
+        </section>
+
+        <!-- Modal for adding learning goals -->
+        <div id="addGoalModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Add Learning Goal</h2>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="addGoalForm">
+                        <div class="form-group">
+                            <label for="modalTitle" class="form-label">What do you want to learn?</label>
+                            <input type="text" id="modalTitle" name="title" class="form-input" required
+                                placeholder="e.g., Docker containers, Kubernetes orchestration">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="modalDescription" class="form-label">Description</label>
+                            <textarea id="modalDescription" name="description" class="form-textarea" required
+                                placeholder="Describe what specifically you want to learn about this topic..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Add Learning Goal</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>© 2025 TSC Labs e.U. - Learning Tracker</p>
+        <div class="disclaimer">
+            <p><strong>📚 Hey there, fellow learner!</strong></p>
+            <p>This app is built purely for educational and demonstration purposes.
+                It's great for learning about containers and cloud-native development,
+                but please don't use it in production environments. Think of it as your
+                friendly playground! 🚀</p>
+        </div>
+    </footer>
+
+    <script>
+        let draggedElement = null;
+
+        // Initialize drag and drop
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeDragAndDrop();
+            initializeModal();
+        });
+
+        function initializeModal() {
+            const form = document.getElementById('addGoalForm');
+            form.addEventListener('submit', handleFormSubmit);
+        }
+
+        function openModal() {
+            const modal = document.getElementById('addGoalModal');
+            modal.classList.add('show');
+            document.getElementById('modalTitle').focus();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('addGoalModal');
+            modal.classList.remove('show');
+            document.getElementById('addGoalForm').reset();
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function (e) {
+            const modal = document.getElementById('addGoalModal');
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const title = formData.get('title');
+            const description = formData.get('description');
+
+            try {
+                const response = await fetch('/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        title: title,
+                        description: description
+                    })
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    let errorText = await response.text();
+                    if (errorText && errorText.trim().length > 0) {
+                        alert('Failed to add learning goal: ' + errorText);
+                    } else {
+                        alert('Failed to add learning goal (status: ' + response.status + ')');
+                    }
+                }
+            } catch (error) {
+                alert('Error adding learning goal: ' + (error && error.message ? error.message : error));
+            }
+        }
+
+        async function updateStatus(id, status) {
+            try {
+                const response = await fetch(`/status/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ status: status })
+                });
+
+                
+                
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    location.reload();
+                } else {
+                    let errorMessage = 'Failed to update status. Please try again.';
+                    try {
+                        const errorData = await response.json();
+                        if (errorData && errorData.message) {
+                            errorMessage = errorData.message;
+                        }
+                    } catch (e) {
+                        // If not JSON, try to use text
+                        const errorText = await response.text();
+                        if (errorText && errorText.trim().length > 0) {
+                            errorMessage = errorText;
+                        }
+                    }
+                    console.error('Failed response:', errorMessage);
+                    alert(errorMessage);
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+                alert('An unexpected error occurred while updating the status. Please try again.');
+            }
+        }
+
+        function initializeDragAndDrop() {
+            const items = document.querySelectorAll('.learning-item');
+
+            items.forEach(item => {
+                // Remove any existing draggable attribute
+                item.removeAttribute('draggable');
+
+                const dragHandle = item.querySelector('.drag-handle');
+
+                // Make the handle draggable and add event listeners
+                dragHandle.addEventListener('mousedown', function (e) {
+                    item.setAttribute('draggable', 'true');
+                });
+
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('dragenter', handleDragEnter);
+                item.addEventListener('dragleave', handleDragLeave);
+            });
+
+            // Also make columns droppable for empty state
+            const columns = document.querySelectorAll('.learning-items');
+            columns.forEach(column => {
+                column.addEventListener('dragover', handleDragOver);
+                column.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.outerHTML);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            if (this !== draggedElement) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            // Only remove drag-over if we're actually leaving the element
+            if (!this.contains(e.relatedTarget)) {
+                this.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Handle drop on column
+            if (e.target.classList.contains('learning-items') || e.target.closest('.learning-items')) {
+                const column = e.target.classList.contains('learning-items') ? e.target : e.target.closest('.learning-items');
+                const newStatus = getStatusFromColumn(column);
+
+                if (draggedElement) {
+                    const draggedId = parseInt(draggedElement.dataset.id);
+                    const currentStatus = draggedElement.dataset.status;
+
+                    if (newStatus && newStatus !== currentStatus) {
+                        updateStatus(draggedId, newStatus);
+                        return;
+                    }
+                }
+            }
+
+            // Handle drop on item (reordering)
+            if (draggedElement && draggedElement !== this) {
+                const draggedId = parseInt(draggedElement.dataset.id);
+                const targetId = parseInt(this.dataset.id);
+
+
+                if (draggedId !== targetId) {
+                    reorderItems(draggedId, targetId);
+                }
+            }
+
+            this.classList.remove('drag-over');
+            return false;
+        }
+
+        function getStatusFromColumn(column) {
+            if (column.id === 'todo-items') return 'todo';
+            if (column.id === 'progress-items') return 'progress';
+            if (column.id === 'completed-items') return 'completed';
+            return null;
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+
+            // Clean up all drag-over classes
+            document.querySelectorAll('.learning-item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+
+            draggedElement = null;
+        }
+
+        async function reorderItems(draggedId, targetId) {
+            try {
+                const response = await fetch('/reorder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        draggedId: draggedId,
+                        targetId: targetId
+                    })
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    // Reload the page to show the new order
+                    location.reload();
+                } else {
+                    console.error('Failed to reorder items:', result);
+                    alert('Failed to reorder items' + (result && (result.error || result.message) ? ': ' + (result.error || result.message) : ''));
+                    location.reload(); // Reload to reset the UI
+                }
+            } catch (error) {
+                console.error('Error reordering items:', error);
+                alert('Error reordering items');
+                location.reload(); // Reload to reset the UI
+            }
+        }
+
+        async function deleteItem(id) {
+            if (confirm('Are you sure you want to delete this learning goal?')) {
+                try {
+                    const response = await fetch(`/delete/${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        let errorMsg = `Failed to delete item (status: ${response.status})`;
+                        try {
+                            const errorData = await response.json();
+                            if (errorData && errorData.message) {
+                                errorMsg = `Failed to delete item: ${errorData.message}`;
+                            }
+                        } catch (e) {
+                            // response is not JSON or no message field
+                        }
+                        alert(errorMsg);
+                    }
+                } catch (error) {
+                    alert('Error deleting item: ' + (error && error.message ? error.message : error));
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
