@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/tsclabs-eu/learning-tracker/compare/v1.0.0...v1.0.1) (2025-08-17)
+
+
+### Other
+
+* fix target repository ([9e4d608](https://github.com/tsclabs-eu/learning-tracker/commit/9e4d608b4bd998ed0fc4e0802e8fce331e80d17c))
+
 ## 1.0.0 (2025-08-17)
 
 
