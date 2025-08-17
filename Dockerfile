@@ -11,7 +11,7 @@ RUN npm install
 COPY /app /app
 
 # Our Runtime Container
-FROM gcr.io/distroless/nodejs22-debian12
+FROM gcr.io/distroless/nodejs22-debian12 AS production
 
 COPY --from=builder /app /app
 
