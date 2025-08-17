@@ -17,4 +17,6 @@ COPY --chown=65532:65532 --from=builder /app /app
 
 USER nonroot
 
+WORKDIR /app
+
 CMD [ "/app/app.js" ]
