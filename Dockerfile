@@ -16,3 +16,5 @@ FROM gcr.io/distroless/nodejs22-debian12 AS production
 COPY --from=builder /app /app
 
 USER nonroot
+
+CMD [ "/app/app.js" ]
