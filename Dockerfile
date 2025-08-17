@@ -13,9 +13,7 @@ COPY /app /app
 # Our Runtime Container
 FROM gcr.io/distroless/nodejs22-debian12 AS production
 
-COPY --from=builder  /app /app
-
-RUN chown -R nonroot:nonroot /app
+COPY --chown=nonroot:nonroot --from=builder /app /app
 
 USER nonroot
 
