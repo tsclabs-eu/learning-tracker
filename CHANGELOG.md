@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/tsclabs-eu/learning-tracker/compare/v1.0.4...v1.0.5) (2025-08-17)
+
+
+### Other
+
+* fix permissions in app directory ([7e3ec6e](https://github.com/tsclabs-eu/learning-tracker/commit/7e3ec6ea2a0da9cab9c337ed2ee3a10aefa70f3a))
+
 ## [1.0.4](https://github.com/tsclabs-eu/learning-tracker/compare/v1.0.3...v1.0.4) (2025-08-17)
 
 
