@@ -41,7 +41,7 @@ jobs:
       packages: write
       id-token: write
     env:
-      IMAGE_TAG: ghcr.io/on-clouds/learning-tracker:${{ needs.release-please.outputs.tag_name }}
+      IMAGE_TAG: ghcr.io/tsclabs-eu/learning-tracker:${{ needs.release-please.outputs.tag_name }}
       IMAGE_NAME: learning-tracker
     steps:
       - name: Checkout
