@@ -91,7 +91,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           target: production
           tags: |
             ghcr.io/tsclabs-eu/${{ env.IMAGE_NAME }}:dev-${{ env.DATETIME }}
