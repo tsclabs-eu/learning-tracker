@@ -111,7 +111,68 @@ Example manifests are provided for:
 - Database: `mariadb-deployment.yaml`
 - Pod example: `learning-tracker-pod.yaml`
 
+### Multi-Replica Deployments
 
+When deploying with multiple API replicas (horizontal scaling), be aware of the following considerations:
+
+#### Database Selection
+
+**⚠️ SQLite Mode:**
+- **Single-replica deployments only** (development/testing)
+- SQLite uses file-based storage with a single-writer limitation
+- Multiple replicas writing to the same SQLite file will cause write conflicts and data corruption
+- Not suitable for Kubernetes deployments with `replicas > 1`
+
+**✅ MySQL/MariaDB Mode (Recommended for Production):**
+- Supports multiple concurrent connections from different replicas
+- Connection pooling enabled (10 connections per replica)
+- Handles concurrent writes safely with proper locking
+- Recommended for production deployments with horizontal scaling
+
+#### Configuration Example
+
+```yaml
+# api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: learning-tracker-api
+spec:
+  replicas: 3  # Multiple replicas supported with MySQL
+  template:
+    spec:
+      containers:
+      - name: api
+        image: ghcr.io/tsclabs-eu/learning-tracker-api:latest
+        env:
+        - name: APP_MODE
+          value: "api"
+        - name: DB_TYPE
+          value: "mysql"  # Use MySQL for multi-replica
+        - name: DB_HOST
+          value: "mariadb-service"
+        - name: DB_NAME
+          value: "learning_tracker"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: password
+```
+
+#### Schema Migrations
+
+The application automatically creates the database schema on startup using `CREATE TABLE IF NOT EXISTS` logic. This is safe for multi-replica deployments because:
+- Schema creation is idempotent
+- MySQL handles concurrent DDL operations safely
+- Column additions use error handling to ignore if already exists
+
+For production environments, consider using an init container or migration job to ensure schema is created before API replicas start.
 
 ## Development
 

@@ -461,9 +461,13 @@ app.get('/health', (req, res) => {
   
   // Add database host information if not in frontend mode
   if (config.mode !== 'frontend') {
-    healthData.config.database_host = config.database.type === 'sqlite' 
-      ? 'local' 
-      : config.database.host;
+    if (config.database.type === 'sqlite') {
+      healthData.config.database_host = 'local';
+      healthData.config.database_name = config.database.database;
+    } else {
+      healthData.config.database_host = config.database.host;
+      healthData.config.database_name = config.database.database;
+    }
   }
   
   res.json(healthData);
@@ -483,9 +487,13 @@ app.get('/api/health', (req, res) => {
   
   // Add database host information if not in frontend mode
   if (config.mode !== 'frontend') {
-    healthData.config.database_host = config.database.type === 'sqlite' 
-      ? 'local' 
-      : config.database.host;
+    if (config.database.type === 'sqlite') {
+      healthData.config.database_host = 'local';
+      healthData.config.database_name = config.database.database;
+    } else {
+      healthData.config.database_host = config.database.host;
+      healthData.config.database_name = config.database.database;
+    }
   }
   
   res.json(healthData);

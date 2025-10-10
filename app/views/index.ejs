@@ -1052,6 +1052,11 @@
                     <span class="status-item-label">Host</span>
                     <span class="status-item-value" id="panel-db-host">-</span>
                 </div>
+                <div class="status-item">
+                    <span></span>
+                    <span class="status-item-label">Database</span>
+                    <span class="status-item-value" id="panel-db-name">-</span>
+                </div>
             </div>
             <% } %>
         </div>
@@ -1099,6 +1104,7 @@
             const panelDbText = document.getElementById('panel-db-text');
             const panelDbType = document.getElementById('panel-db-type');
             const panelDbHost = document.getElementById('panel-db-host');
+            const panelDbName = document.getElementById('panel-db-name');
 
             try {
                 // Set a timeout for the fetch request
@@ -1149,6 +1155,9 @@
                             }
                             if (panelDbHost) {
                                 panelDbHost.textContent = data.config.database_host || 'localhost';
+                            }
+                            if (panelDbName) {
+                                panelDbName.textContent = data.config.database_name || '-';
                             }
                         }
                     }

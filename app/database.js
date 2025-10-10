@@ -36,14 +36,22 @@ class Database {
 
     async initializeMySQL() {
         try {
-            this.connection = await mysql.createConnection({
+            // Use connection pool for better performance with multiple replicas
+            this.connection = mysql.createPool({
                 host: this.config.host,
                 port: this.config.port,
                 user: this.config.username,
                 password: this.config.password,
-                database: this.config.database
+                database: this.config.database,
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0,
+                enableKeepAlive: true,
+                keepAliveInitialDelay: 0
             });
-            this.logger.info('Connected to MySQL database');
+            // Test the connection
+            await this.connection.query('SELECT 1');
+            this.logger.info('Connected to MySQL database with connection pool');
         } catch (error) {
             this.logger.error('Failed to connect to MySQL database:', error);
             throw error;
