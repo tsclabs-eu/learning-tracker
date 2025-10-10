@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/tsclabs-eu/learning-tracker/compare/v1.0.5...v1.1.0) (2025-10-10)
+
+
+### Features
+
+* split api and frontend ([2da1f1a](https://github.com/tsclabs-eu/learning-tracker/commit/2da1f1a744d957291df7d76432612d0d492d9a8b))
+
+
+### Other
+
+* fix multi-replica issues ([29fed9a](https://github.com/tsclabs-eu/learning-tracker/commit/29fed9acdb319266dfc8d8ecb7b834c9b7b9a3ab))
+
 ## [1.0.5](https://github.com/tsclabs-eu/learning-tracker/compare/v1.0.4...v1.0.5) (2025-08-17)
 
 
