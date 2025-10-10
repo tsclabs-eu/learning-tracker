@@ -36,13 +36,21 @@ jobs:
     needs:
       - release-please
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - name: learning-tracker
+            dockerfile: Dockerfile
+          - name: learning-tracker-api
+            dockerfile: Dockerfile.api
+          - name: learning-tracker-frontend
+            dockerfile: Dockerfile.frontend
     permissions:
       contents: write
       packages: write
       id-token: write
     env:
-      IMAGE_TAG: ghcr.io/tsclabs-eu/learning-tracker:${{ needs.release-please.outputs.tag_name }}
-      IMAGE_NAME: learning-tracker
+      IMAGE_TAG: ghcr.io/tsclabs-eu/${{ matrix.name }}:${{ needs.release-please.outputs.tag_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -62,24 +70,24 @@ jobs:
         uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ./${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.IMAGE_TAG }}
           builder: ${{ steps.buildx.outputs.name }}
           push: true
-          cache-from: type=gha,scope=${{ github.ref_name }}-${{ env.IMAGE_TAG }}
-          cache-to: type=gha,scope=${{ github.ref_name }}-${{ env.IMAGE_TAG }}
+          cache-from: type=gha,scope=${{ github.ref_name }}-${{ matrix.name }}
+          cache-to: type=gha,scope=${{ github.ref_name }}-${{ matrix.name }}
 
       - name: Generate SBOM
         uses: anchore/sbom-action@9f7302141466aa6482940f15371237e9d9f4c34a # v0.19.0
         with:
           image: ${{ env.IMAGE_TAG }}
-          artifact-name: sbom-${{ env.IMAGE_NAME }}
-          output-file: ./sbom-${{ env.IMAGE_NAME }}.spdx.json
+          artifact-name: sbom-${{ matrix.name }}
+          output-file: ./sbom-${{ matrix.name }}.spdx.json
 
       - name: Attach SBOM to release
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
         with:
           tag_name: ${{ needs.release-please.outputs.tag_name }}
-          files: ./sbom-${{ env.IMAGE_NAME }}.spdx.json
+          files: ./sbom-${{ matrix.name }}.spdx.json

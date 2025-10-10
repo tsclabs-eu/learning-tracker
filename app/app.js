@@ -1,10 +1,13 @@
 const express = require('express');
 const path = require('path');
 const winston = require('winston');
+const axios = require('axios');
 const Database = require('./database');
 
 // Configuration with defaults and environment variable support
 const config = {
+  mode: process.env.APP_MODE || 'all-in-one', // 'all-in-one', 'frontend', 'api'
+  apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000', // Used in frontend mode
   port: process.env.PORT || 3000,
   database: {
     type: process.env.DB_TYPE || 'sqlite',
@@ -19,6 +22,13 @@ const config = {
     output: process.env.LOG_OUTPUT || 'file' // 'file' or 'console'
   }
 };
+
+// Validate mode
+const validModes = ['all-in-one', 'frontend', 'api'];
+if (!validModes.includes(config.mode)) {
+  console.error(`Invalid APP_MODE: ${config.mode}. Must be one of: ${validModes.join(', ')}`);
+  process.exit(1);
+}
 
 // Logger configuration
 const logFormat = winston.format.combine(
@@ -49,143 +59,462 @@ const logger = winston.createLogger({
 });
 
 const app = express();
-const db = new Database(config.database, logger);
+
+// Initialize database only in API and all-in-one modes
+let db = null;
+if (config.mode === 'api' || config.mode === 'all-in-one') {
+  db = new Database(config.database, logger);
+}
+
+// API client for frontend mode
+const apiClient = axios.create({
+  baseURL: config.apiBaseUrl,
+  timeout: 5000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static('public'));
+
+// CORS middleware for API mode
+if (config.mode === 'api') {
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    
+    next();
+  });
+}
+
+app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Routes
-app.get('/', async (req, res) => {
-  try {
-    const items = await db.getAllLearningItems();
-    res.render('index', { items, error: null });
-  } catch (error) {
-    logger.error('Error fetching learning items:', error);
-    res.render('index', { items: [], error: 'Failed to load learning items' });
-  }
-});
-
-app.post('/add', async (req, res) => {
-  const { title, description } = req.body;
-
-  if (!title || !description || title.trim() === '' || description.trim() === '') {
-    const items = await db.getAllLearningItems();
-    return res.render('index', {
-      items,
-      error: 'Title and description are required'
-    });
-  }
-
-  try {
-    await db.addLearningItem(title, description);
-    logger.info(`Added new learning item: ${title}`);
-    res.redirect('/');
-  } catch (error) {
-    logger.error('Error adding learning item:', error);
-    const items = await db.getAllLearningItems();
-    res.render('index', {
-      items,
-      error: 'Failed to add learning item'
-    });
-  }
-});
-
-app.delete('/delete/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    await db.deleteLearningItem(id);
-    logger.info(`Deleted learning item with id: ${id}`);
-    res.json({ success: true });
-  } catch (error) {
-    logger.error('Error deleting learning item:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete item' });
-  }
-});
-
-app.post('/resolve/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    await db.resolveItem(id);
-    logger.info(`Resolved learning item with id: ${id}`);
-    res.json({ success: true });
-  } catch (error) {
-    logger.error('Error resolving learning item:', error);
-    res.status(500).json({ success: false, error: 'Failed to resolve item' });
-  }
-});
-
-app.post('/unresolve/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    await db.unresolveItem(id);
-    logger.info(`Unresolved learning item with id: ${id}`);
-    res.json({ success: true });
-  } catch (error) {
-    logger.error('Error unresolving learning item:', error);
-    res.status(500).json({ success: false, error: 'Failed to unresolve item' });
-  }
-});
-
-app.post('/reorder', async (req, res) => {
-  const { draggedId, targetId } = req.body;
-
-  try {
-    await db.reorderItems(draggedId, targetId);
-    logger.info(`Reordered items: ${draggedId} -> ${targetId}`);
-    res.json({ success: true });
-  } catch (error) {
-    logger.error('Error reordering learning items:', error);
-    res.status(500).json({ success: false, error: 'Failed to reorder items' });
-  }
-});
-
-app.post('/status/:id', async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
-  logger.info(`Received status update request: ID=${id}, Status=${status}`);
-
-  try {
-    await db.updateItemStatus(id, status);
-    logger.info(`Updated status of item ${id} to ${status}`);
-    res.json({ success: true });
-  } catch (error) {
-    logger.error('Error updating item status:', error);
-    res.status(500).json({ success: false, error: 'Failed to update status' });
-  }
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    config: {
-      port: config.port,
-      database_type: config.database.type,
-      log_output: config.logging.output
+// Frontend Routes (served in 'frontend' and 'all-in-one' modes)
+if (config.mode === 'frontend' || config.mode === 'all-in-one') {
+  app.get('/', async (req, res) => {
+    try {
+      let items;
+      let backendHostname = null;
+      
+      if (config.mode === 'frontend') {
+        // In frontend mode, fetch from API backend
+        try {
+          const response = await apiClient.get('/api/items');
+          items = response.data;
+          // Get backend hostname from health check
+          try {
+            const healthResponse = await apiClient.get('/health');
+            backendHostname = healthResponse.data.hostname || config.apiBaseUrl;
+          } catch (e) {
+            backendHostname = config.apiBaseUrl;
+          }
+        } catch (error) {
+          logger.error('Error fetching items from API backend:', error.message);
+          items = [];
+          backendHostname = config.apiBaseUrl;
+        }
+      } else {
+        // In all-in-one mode, use local database
+        items = await db.getAllLearningItems();
+      }
+      
+      res.render('index', { 
+        items, 
+        error: null,
+        frontendHostname: require('os').hostname(),
+        backendHostname: backendHostname,
+        mode: config.mode
+      });
+    } catch (error) {
+      logger.error('Error fetching learning items:', error);
+      res.render('index', { 
+        items: [], 
+        error: 'Failed to load learning items',
+        frontendHostname: require('os').hostname(),
+        backendHostname: null,
+        mode: config.mode
+      });
     }
   });
+  
+  // Proxy API endpoints in frontend mode
+  if (config.mode === 'frontend') {
+    // Health check for backend API - return backend's health data directly
+    app.get('/api/health', async (req, res) => {
+      try {
+        const response = await apiClient.get('/health');
+        res.json(response.data);
+      } catch (error) {
+        logger.error('Backend health check failed:', error.message);
+        res.status(503).json({ 
+          status: 'unhealthy',
+          error: error.message,
+          backend: 'unreachable'
+        });
+      }
+    });
+    
+    // Get all items
+    app.get('/api/items', async (req, res) => {
+      try {
+        const response = await apiClient.get('/api/items');
+        res.json(response.data);
+      } catch (error) {
+        logger.error('Error proxying get items:', error);
+        res.status(error.response?.status || 500).json({ success: false, error: error.message });
+      }
+    });
+    
+    // Add item
+    app.post('/api/items', async (req, res) => {
+      try {
+        const response = await apiClient.post('/api/items', req.body);
+        res.json(response.data);
+      } catch (error) {
+        logger.error('Error proxying add item:', error);
+        res.status(error.response?.status || 500).json({ success: false, error: error.message });
+      }
+    });
+    
+    // Delete item
+    app.delete('/api/items/:id', async (req, res) => {
+      try {
+        const response = await apiClient.delete(`/api/items/${req.params.id}`);
+        res.json(response.data);
+      } catch (error) {
+        logger.error('Error proxying delete item:', error);
+        res.status(error.response?.status || 500).json({ success: false, error: error.message });
+      }
+    });
+    
+    // Update item status
+    app.post('/api/items/:id/status', async (req, res) => {
+      try {
+        const response = await apiClient.post(`/api/items/${req.params.id}/status`, req.body);
+        res.json(response.data);
+      } catch (error) {
+        logger.error('Error proxying update status:', error);
+        res.status(error.response?.status || 500).json({ success: false, error: error.message });
+      }
+    });
+    
+    // Resolve item
+    app.post('/api/items/:id/resolve', async (req, res) => {
+      try {
+        const response = await apiClient.post(`/api/items/${req.params.id}/resolve`, req.body);
+        res.json(response.data);
+      } catch (error) {
+        logger.error('Error proxying resolve item:', error);
+        res.status(error.response?.status || 500).json({ success: false, error: error.message });
+      }
+    });
+    
+    // Unresolve item
+    app.post('/api/items/:id/unresolve', async (req, res) => {
+      try {
+        const response = await apiClient.post(`/api/items/${req.params.id}/unresolve`, req.body);
+        res.json(response.data);
+      } catch (error) {
+        logger.error('Error proxying unresolve item:', error);
+        res.status(error.response?.status || 500).json({ success: false, error: error.message });
+      }
+    });
+    
+    // Reorder items
+    app.post('/api/items/reorder', async (req, res) => {
+      try {
+        const response = await apiClient.post('/api/items/reorder', req.body);
+        res.json(response.data);
+      } catch (error) {
+        logger.error('Error proxying reorder items:', error);
+        res.status(error.response?.status || 500).json({ success: false, error: error.message });
+      }
+    });
+  }
+}
+
+// API Routes (served in 'api' and 'all-in-one' modes)
+if (config.mode === 'api' || config.mode === 'all-in-one') {
+  // Get all items
+  app.get('/api/items', async (req, res) => {
+    try {
+      const items = await db.getAllLearningItems();
+      res.json(items);
+    } catch (error) {
+      logger.error('Error fetching learning items:', error);
+      res.status(500).json({ success: false, error: 'Failed to load learning items' });
+    }
+  });
+
+  // Add item
+  app.post('/api/items', async (req, res) => {
+    const { title, description } = req.body;
+
+    if (!title || !description || title.trim() === '' || description.trim() === '') {
+      return res.status(400).json({ success: false, error: 'Title and description are required' });
+    }
+
+    try {
+      await db.addLearningItem(title, description);
+      logger.info(`Added new learning item: ${title}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error adding learning item:', error);
+      res.status(500).json({ success: false, error: 'Failed to add learning item' });
+    }
+  });
+
+  // Delete item
+  app.delete('/api/items/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      await db.deleteLearningItem(id);
+      logger.info(`Deleted learning item with id: ${id}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error deleting learning item:', error);
+      res.status(500).json({ success: false, error: 'Failed to delete item' });
+    }
+  });
+
+  // Resolve item
+  app.post('/api/items/:id/resolve', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      await db.resolveItem(id);
+      logger.info(`Resolved learning item with id: ${id}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error resolving learning item:', error);
+      res.status(500).json({ success: false, error: 'Failed to resolve item' });
+    }
+  });
+
+  // Unresolve item
+  app.post('/api/items/:id/unresolve', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      await db.unresolveItem(id);
+      logger.info(`Unresolved learning item with id: ${id}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error unresolving learning item:', error);
+      res.status(500).json({ success: false, error: 'Failed to unresolve item' });
+    }
+  });
+
+  // Update item status
+  app.post('/api/items/:id/status', async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    logger.info(`Received status update request: ID=${id}, Status=${status}`);
+
+    try {
+      await db.updateItemStatus(id, status);
+      logger.info(`Updated status of item ${id} to ${status}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error updating item status:', error);
+      res.status(500).json({ success: false, error: 'Failed to update status' });
+    }
+  });
+
+  // Reorder items
+  app.post('/api/items/reorder', async (req, res) => {
+    const { draggedId, targetId } = req.body;
+
+    try {
+      await db.reorderItems(draggedId, targetId);
+      logger.info(`Reordered items: ${draggedId} -> ${targetId}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error reordering learning items:', error);
+      res.status(500).json({ success: false, error: 'Failed to reorder items' });
+    }
+  });
+}
+
+// Legacy routes for backwards compatibility in all-in-one mode
+if (config.mode === 'all-in-one') {
+  app.post('/add', async (req, res) => {
+    const { title, description } = req.body;
+
+    if (!title || !description || title.trim() === '' || description.trim() === '') {
+      const items = await db.getAllLearningItems();
+      return res.render('index', {
+        items,
+        error: 'Title and description are required'
+      });
+    }
+
+    try {
+      await db.addLearningItem(title, description);
+      logger.info(`Added new learning item: ${title}`);
+      res.redirect('/');
+    } catch (error) {
+      logger.error('Error adding learning item:', error);
+      const items = await db.getAllLearningItems();
+      res.render('index', {
+        items,
+        error: 'Failed to add learning item'
+      });
+    }
+  });
+
+  app.delete('/delete/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      await db.deleteLearningItem(id);
+      logger.info(`Deleted learning item with id: ${id}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error deleting learning item:', error);
+      res.status(500).json({ success: false, error: 'Failed to delete item' });
+    }
+  });
+
+  app.post('/resolve/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      await db.resolveItem(id);
+      logger.info(`Resolved learning item with id: ${id}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error resolving learning item:', error);
+      res.status(500).json({ success: false, error: 'Failed to resolve item' });
+    }
+  });
+
+  app.post('/unresolve/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      await db.unresolveItem(id);
+      logger.info(`Unresolved learning item with id: ${id}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error unresolving learning item:', error);
+      res.status(500).json({ success: false, error: 'Failed to unresolve item' });
+    }
+  });
+
+  app.post('/reorder', async (req, res) => {
+    const { draggedId, targetId } = req.body;
+
+    try {
+      await db.reorderItems(draggedId, targetId);
+      logger.info(`Reordered items: ${draggedId} -> ${targetId}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error reordering learning items:', error);
+      res.status(500).json({ success: false, error: 'Failed to reorder items' });
+    }
+  });
+
+  app.post('/status/:id', async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    logger.info(`Received status update request: ID=${id}, Status=${status}`);
+
+    try {
+      await db.updateItemStatus(id, status);
+      logger.info(`Updated status of item ${id} to ${status}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error updating item status:', error);
+      res.status(500).json({ success: false, error: 'Failed to update status' });
+    }
+  });
+}
+
+// Health check endpoints (available in all modes)
+app.get('/health', (req, res) => {
+  const healthData = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    hostname: require('os').hostname(),
+    config: {
+      mode: config.mode,
+      port: config.port,
+      database_type: config.mode !== 'frontend' ? config.database.type : 'N/A',
+      log_output: config.logging.output,
+      api_base_url: config.mode === 'frontend' ? config.apiBaseUrl : 'N/A'
+    }
+  };
+  
+  // Add database host information if not in frontend mode
+  if (config.mode !== 'frontend') {
+    healthData.config.database_host = config.database.type === 'sqlite' 
+      ? 'local' 
+      : config.database.host;
+  }
+  
+  res.json(healthData);
+});
+
+// Alias for consistency with frontend expectations
+app.get('/api/health', (req, res) => {
+  const healthData = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    hostname: require('os').hostname(),
+    mode: config.mode,
+    config: {
+      database_type: config.mode !== 'frontend' ? config.database.type : 'N/A'
+    }
+  };
+  
+  // Add database host information if not in frontend mode
+  if (config.mode !== 'frontend') {
+    healthData.config.database_host = config.database.type === 'sqlite' 
+      ? 'local' 
+      : config.database.host;
+  }
+  
+  res.json(healthData);
 });
 
 // Initialize database and start server
 async function startServer() {
   try {
-    await db.initialize();
-    logger.info('Database initialized successfully');
+    // Initialize database only in API and all-in-one modes
+    if (db) {
+      await db.initialize();
+      logger.info('Database initialized successfully');
+    } else {
+      logger.info('Running in frontend-only mode, no database initialization');
+    }
 
     app.listen(config.port, () => {
-      logger.info(`Server running on port ${config.port}`);
-      logger.info(`Database type: ${config.database.type}`);
+      logger.info(`Server running in ${config.mode} mode on port ${config.port}`);
+      if (db) {
+        logger.info(`Database type: ${config.database.type}`);
+      }
+      if (config.mode === 'frontend') {
+        logger.info(`API base URL: ${config.apiBaseUrl}`);
+      }
       logger.info(`Logging to: ${config.logging.output}`);
-      console.log(`Server running on http://localhost:${config.port}`);
+      console.log(`Server running in ${config.mode} mode on http://localhost:${config.port}`);
+      if (config.mode === 'frontend') {
+        console.log(`Connecting to API at: ${config.apiBaseUrl}`);
+      }
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

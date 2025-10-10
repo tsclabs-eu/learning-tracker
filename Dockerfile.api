@@ -1,6 +1,6 @@
-# Dockerfile for Learning Tracker (All-in-One Mode)
-# This image includes both frontend and API with database support
-# Build with: docker build -t learning-tracker .
+# Dockerfile for API Mode
+# This image includes only the API backend with database support
+# Build with: docker build -f Dockerfile.api -t learning-tracker:api .
 
 FROM node:22 AS builder
 
@@ -10,6 +10,7 @@ COPY /app/package*.json /app/
 
 WORKDIR /app
 
+# Install only production dependencies
 RUN npm install --production
 
 COPY /app /app
@@ -17,7 +18,8 @@ COPY /app /app
 # Runtime Container
 FROM gcr.io/distroless/nodejs22-debian12 AS production
 
-ENV APP_MODE=all-in-one
+# Set mode to API
+ENV APP_MODE=api
 
 # Default configuration
 ENV PORT=3000 \
@@ -30,6 +32,7 @@ ENV PORT=3000 \
     DB_USER=root \
     DB_PASSWORD=""
 
+# Copy application
 COPY --chown=65532:65532 --from=builder /app /app
 
 USER nonroot

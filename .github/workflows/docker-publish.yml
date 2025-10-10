@@ -64,6 +64,15 @@ jobs:
     needs: [ prepare_ci_run ]
     if: github.event_name == 'push' && needs.prepare_ci_run.outputs.NON_FORKED_AND_NON_ROBOT_RUN == 'true' # only run on push to main/maintenance branches
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - name: learning-tracker
+            dockerfile: Dockerfile
+          - name: learning-tracker-api
+            dockerfile: Dockerfile.api
+          - name: learning-tracker-frontend
+            dockerfile: Dockerfile.frontend
     env:
       DATETIME: ${{ needs.prepare_ci_run.outputs.DATETIME }}
       BUILD_TIME: ${{ needs.prepare_ci_run.outputs.BUILD_TIME }}
@@ -90,12 +99,12 @@ jobs:
         uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ./${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm64
           target: production
           tags: |
-            ghcr.io/tsclabs-eu/${{ env.IMAGE_NAME }}:dev-${{ env.DATETIME }}
+            ghcr.io/tsclabs-eu/${{ matrix.name }}:dev-${{ env.DATETIME }}
           builder: ${{ steps.buildx.outputs.name }}
           push: true
-          cache-from: type=gha,scope=${{ github.ref_name }}-${{ env.IMAGE_NAME }}
-          cache-to: type=gha,scope=${{ github.ref_name }}-${{ env.IMAGE_NAME }}
+          cache-from: type=gha,scope=${{ github.ref_name }}-${{ matrix.name }}
+          cache-to: type=gha,scope=${{ github.ref_name }}-${{ matrix.name }}
