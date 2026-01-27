@@ -74,6 +74,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.IMAGE_TAG }}
+          build-args: |
+            VERSION=${{ needs.release-please.outputs.tag_name }}
           builder: ${{ steps.buildx.outputs.name }}
           push: true
           cache-from: type=gha,scope=${{ github.ref_name }}-${{ matrix.name }}

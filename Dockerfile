@@ -1,6 +1,8 @@
 # Dockerfile for Learning Tracker (All-in-One Mode)
 # This image includes both frontend and API with database support
-# Build with: docker build -t learning-tracker .
+# Build with: docker build --build-arg VERSION=1.0.0 -t learning-tracker .
+
+ARG VERSION=unknown
 
 FROM node:22 AS builder
 
@@ -18,6 +20,7 @@ COPY /app /app
 FROM gcr.io/distroless/nodejs22-debian12 AS production
 
 ENV APP_MODE=all-in-one
+ENV APP_VERSION=${VERSION}
 
 # Default configuration
 ENV PORT=3000 \

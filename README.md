@@ -54,9 +54,9 @@ See [DEPLOYMENT_MODES.md](./DEPLOYMENT_MODES.md) for detailed documentation.
 | `APP_MODE` | Deployment mode: `all-in-one`, `api`, or `frontend` | `all-in-one` | All |
 | `API_BASE_URL` | API server URL (required in frontend mode) | `http://localhost:3000` | frontend |
 | `PORT` | Server port | `3000` | All |
-| `DB_TYPE` | Database type: `sqlite` or `mysql` | `sqlite` | api, all-in-one |
+| `DB_TYPE` | Database type: `sqlite`, `mysql`, or `postgresql` | `sqlite` | api, all-in-one |
 | `DB_HOST` | Database host | `localhost` | api, all-in-one |
-| `DB_PORT` | Database port | `3306` | api, all-in-one |
+| `DB_PORT` | Database port | `3306` (MySQL), `5432` (PostgreSQL) | api, all-in-one |
 | `DB_NAME` | Database name/path | `learning.db` | api, all-in-one |
 | `DB_USER` | Database username | `root` | api, all-in-one |
 | `DB_PASSWORD` | Database password | `` | api, all-in-one |
@@ -129,6 +129,13 @@ When deploying with multiple API replicas (horizontal scaling), be aware of the 
 - Handles concurrent writes safely with proper locking
 - Recommended for production deployments with horizontal scaling
 
+**✅ PostgreSQL Mode (Recommended for Production):**
+- Supports multiple concurrent connections from different replicas
+- Connection pooling enabled (10 connections per replica)
+- Robust transaction handling and ACID compliance
+- Excellent performance for concurrent reads and writes
+- Recommended for production deployments with horizontal scaling
+
 #### Configuration Example
 
 ```yaml
@@ -151,6 +158,56 @@ spec:
           value: "mysql"  # Use MySQL for multi-replica
         - name: DB_HOST
           value: "mariadb-service"
+        - name: DB_NAME
+          value: "learning_tracker"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: password
+```
+
+#### PostgreSQL Configuration Example
+
+```bash
+# Running with PostgreSQL
+docker run -p 3000:3000 \
+  -e DB_TYPE=postgresql \
+  -e DB_HOST=postgres-server \
+  -e DB_PORT=5432 \
+  -e DB_NAME=learning_tracker \
+  -e DB_USER=postgres \
+  -e DB_PASSWORD=yourpassword \
+  learning-tracker:api
+```
+
+```yaml
+# Kubernetes deployment with PostgreSQL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: learning-tracker-api
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: api
+        image: ghcr.io/tsclabs-eu/learning-tracker-api:latest
+        env:
+        - name: APP_MODE
+          value: "api"
+        - name: DB_TYPE
+          value: "postgresql"
+        - name: DB_HOST
+          value: "postgresql-service"
+        - name: DB_PORT
+          value: "5432"
         - name: DB_NAME
           value: "learning_tracker"
         - name: DB_USER
@@ -221,7 +278,7 @@ The application follows the twelve-factor app methodology:
 
 - **Backend**: Node.js with Express
 - **Frontend**: EJS templates with vanilla JavaScript
-- **Databases**: SQLite (default) or MySQL/MariaDB
+- **Databases**: SQLite (default), MySQL/MariaDB, or PostgreSQL
 - **Logging**: Winston
 - **HTTP Client**: Axios (for frontend mode)
 

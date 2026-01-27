@@ -1,6 +1,8 @@
 # Dockerfile for API Mode
 # This image includes only the API backend with database support
-# Build with: docker build -f Dockerfile.api -t learning-tracker:api .
+# Build with: docker build -f Dockerfile.api --build-arg VERSION=1.0.0 -t learning-tracker:api .
+
+ARG VERSION=unknown
 
 FROM node:22 AS builder
 
@@ -20,6 +22,7 @@ FROM gcr.io/distroless/nodejs22-debian12 AS production
 
 # Set mode to API
 ENV APP_MODE=api
+ENV APP_VERSION=${VERSION}
 
 # Default configuration
 ENV PORT=3000 \

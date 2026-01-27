@@ -7,12 +7,13 @@ const Database = require('./database');
 // Configuration with defaults and environment variable support
 const config = {
   mode: process.env.APP_MODE || 'all-in-one', // 'all-in-one', 'frontend', 'api'
+  version: process.env.APP_VERSION || 'dev', // Application version from build
   apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000', // Used in frontend mode
   port: process.env.PORT || 3000,
   database: {
     type: process.env.DB_TYPE || 'sqlite',
     host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
+    port: process.env.DB_PORT || ((process.env.DB_TYPE === 'postgresql') ? 5432 : 3306),
     database: process.env.DB_NAME || 'learning.db',
     username: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || ''
@@ -450,6 +451,7 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     hostname: require('os').hostname(),
+    version: config.version,
     config: {
       mode: config.mode,
       port: config.port,
@@ -479,6 +481,7 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     hostname: require('os').hostname(),
+    version: config.version,
     mode: config.mode,
     config: {
       database_type: config.mode !== 'frontend' ? config.database.type : 'N/A'

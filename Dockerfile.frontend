@@ -1,6 +1,8 @@
 # Dockerfile for Frontend Mode
 # This image includes only the frontend, no database dependencies
-# Build with: docker build -f Dockerfile.frontend -t learning-tracker:frontend .
+# Build with: docker build -f Dockerfile.frontend --build-arg VERSION=1.0.0 -t learning-tracker:frontend .
+
+ARG VERSION=unknown
 
 FROM node:22 AS builder
 
@@ -20,6 +22,7 @@ FROM gcr.io/distroless/nodejs22-debian12 AS production
 
 # Set mode to frontend
 ENV APP_MODE=frontend
+ENV APP_VERSION=${VERSION}
 
 # Default configuration
 ENV PORT=8080 \

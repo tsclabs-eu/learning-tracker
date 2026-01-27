@@ -1,320 +1,213 @@
-const sqlite3 = require('sqlite3').verbose();
-const mysql = require('mysql2/promise');
+const { Sequelize, DataTypes } = require('sequelize');
 
 class Database {
     constructor(config, logger) {
         this.config = config;
         this.logger = logger;
-        this.connection = null;
-    }
 
-    async initialize() {
-        if (this.config.type === 'sqlite') {
-            await this.initializeSQLite();
-        } else if (this.config.type === 'mysql') {
-            await this.initializeMySQL();
+        // Map database type to Sequelize dialect
+        const dialect = config.type === 'postgresql' ? 'postgres' : config.type;
+
+        // Configure Sequelize connection
+        const sequelizeConfig = {
+            dialect: dialect,
+            logging: (msg) => logger.debug(msg),
+            pool: {
+                max: 10,
+                min: 0,
+                acquire: 30000,
+                idle: 10000
+            }
+        };
+
+        // Add connection details based on database type
+        if (config.type === 'sqlite') {
+            sequelizeConfig.storage = config.database;
         } else {
-            throw new Error(`Unsupported database type: ${this.config.type}`);
+            sequelizeConfig.host = config.host;
+            sequelizeConfig.port = config.port;
+            sequelizeConfig.database = config.database;
+            sequelizeConfig.username = config.username;
+            sequelizeConfig.password = config.password;
         }
 
-        await this.createSchema();
-    }
+        this.sequelize = new Sequelize(sequelizeConfig);
 
-    async initializeSQLite() {
-        return new Promise((resolve, reject) => {
-            this.connection = new sqlite3.Database(this.config.database, (err) => {
-                if (err) {
-                    this.logger.error('Failed to connect to SQLite database:', err);
-                    reject(err);
-                } else {
-                    this.logger.info('Connected to SQLite database');
-                    resolve();
-                }
-            });
+        // Define the LearningItem model
+        this.LearningItem = this.sequelize.define('learning_item', {
+            id: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true
+            },
+            title: {
+                type: DataTypes.STRING(255),
+                allowNull: false
+            },
+            description: {
+                type: DataTypes.TEXT,
+                allowNull: false
+            },
+            status: {
+                type: DataTypes.STRING(20),
+                defaultValue: 'todo'
+            },
+            resolved: {
+                type: DataTypes.BOOLEAN,
+                defaultValue: false
+            },
+            order_index: {
+                type: DataTypes.INTEGER,
+                defaultValue: 0
+            },
+            created_at: {
+                type: DataTypes.DATE,
+                defaultValue: DataTypes.NOW,
+                field: 'created_at'
+            }
+        }, {
+            tableName: 'learning_items',
+            timestamps: false,
+            underscored: true
         });
     }
 
-    async initializeMySQL() {
+    async initialize() {
         try {
-            // Use connection pool for better performance with multiple replicas
-            this.connection = mysql.createPool({
-                host: this.config.host,
-                port: this.config.port,
-                user: this.config.username,
-                password: this.config.password,
-                database: this.config.database,
-                waitForConnections: true,
-                connectionLimit: 10,
-                queueLimit: 0,
-                enableKeepAlive: true,
-                keepAliveInitialDelay: 0
-            });
             // Test the connection
-            await this.connection.query('SELECT 1');
-            this.logger.info('Connected to MySQL database with connection pool');
+            await this.sequelize.authenticate();
+            this.logger.info(`Connected to ${this.config.type} database with Sequelize`);
+
+            // Create tables if they don't exist
+            await this.sequelize.sync();
+            this.logger.info('Database schema synchronized successfully');
         } catch (error) {
-            this.logger.error('Failed to connect to MySQL database:', error);
+            this.logger.error('Failed to initialize database:', error);
             throw error;
         }
     }
 
-    async createSchema() {
-        const createTableSQL = `
-      CREATE TABLE IF NOT EXISTS learning_items (
-        id INTEGER PRIMARY KEY ${this.config.type === 'mysql' ? 'AUTO_INCREMENT' : 'AUTOINCREMENT'},
-        title VARCHAR(255) NOT NULL,
-        description TEXT NOT NULL,
-        status VARCHAR(20) DEFAULT 'todo',
-        resolved BOOLEAN DEFAULT FALSE,
-        order_index INTEGER DEFAULT 0,
-        created_at ${this.config.type === 'mysql' ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'}
-      )
-    `;
-
-        if (this.config.type === 'sqlite') {
-            return new Promise((resolve, reject) => {
-                this.connection.run(createTableSQL, (err) => {
-                    if (err) {
-                        this.logger.error('Failed to create table:', err);
-                        reject(err);
-                    } else {
-                        this.logger.info('Database schema created successfully');
-                        // Add columns if they don't exist (for existing databases)
-                        this.addMissingColumns().then(resolve).catch(reject);
-                    }
-                });
-            });
-        } else {
-            try {
-                await this.connection.execute(createTableSQL);
-                this.logger.info('Database schema created successfully');
-                await this.addMissingColumns();
-            } catch (error) {
-                this.logger.error('Failed to create table:', error);
-                throw error;
-            }
-        }
-    }
-
-    async addMissingColumns() {
-        // Add resolved column if it doesn't exist
-        const addResolvedSQL = `ALTER TABLE learning_items ADD COLUMN resolved BOOLEAN DEFAULT FALSE`;
-        const addOrderSQL = `ALTER TABLE learning_items ADD COLUMN order_index INTEGER DEFAULT 0`;
-        const addStatusSQL = `ALTER TABLE learning_items ADD COLUMN status VARCHAR(20) DEFAULT 'todo'`;
-
-        if (this.config.type === 'sqlite') {
-            return new Promise((resolve) => {
-                this.connection.run(addResolvedSQL, () => {
-                    // Ignore error if column already exists
-                    this.connection.run(addOrderSQL, () => {
-                        // Ignore error if column already exists
-                        this.connection.run(addStatusSQL, () => {
-                            // Ignore error if column already exists
-                            resolve();
-                        });
-                    });
-                });
-            });
-        } else {
-            try {
-                await this.connection.execute(addResolvedSQL);
-            } catch (error) {
-                // Ignore error if column already exists
-            }
-            try {
-                await this.connection.execute(addOrderSQL);
-            } catch (error) {
-                // Ignore error if column already exists
-            }
-            try {
-                await this.connection.execute(addStatusSQL);
-            } catch (error) {
-                // Ignore error if column already exists
-            }
-        }
-    }
-
     async getAllLearningItems() {
-        const selectSQL = `
-            SELECT
-                id,
-                title,
-                description,
-                status,
-                resolved,
-                order_index,
-                created_at
-            FROM
-                learning_items
-            ORDER BY
-                CASE
-                    WHEN status = "todo" THEN 1
-                    WHEN status = "progress" THEN 2
-                    WHEN status = "completed" THEN 3
-                    ELSE 4
-                END,
-                order_index ASC,
-                created_at DESC
-        `;
-
-        if (this.config.type === 'sqlite') {
-            return new Promise((resolve, reject) => {
-                this.connection.all(selectSQL, [], (err, rows) => {
-                    if (err) {
-                        this.logger.error('Failed to fetch learning items:', err);
-                        reject(err);
-                    } else {
-                        resolve(rows);
-                    }
-                });
+        try {
+            const items = await this.LearningItem.findAll({
+                order: [
+                    [
+                        this.sequelize.literal(`
+                            CASE
+                                WHEN status = 'todo' THEN 1
+                                WHEN status = 'progress' THEN 2
+                                WHEN status = 'completed' THEN 3
+                                ELSE 4
+                            END
+                        `),
+                        'ASC'
+                    ],
+                    ['order_index', 'ASC'],
+                    ['created_at', 'DESC']
+                ],
+                raw: true
             });
-        } else {
-            try {
-                const [rows] = await this.connection.execute(selectSQL);
-                return rows;
-            } catch (error) {
-                this.logger.error('Failed to fetch learning items:', error);
-                throw error;
-            }
+            return items;
+        } catch (error) {
+            this.logger.error('Failed to fetch learning items:', error);
+            throw error;
         }
     }
 
     async addLearningItem(title, description) {
-        const insertSQL = 'INSERT INTO learning_items (title, description) VALUES (?, ?)';
-
-        if (this.config.type === 'sqlite') {
-            return new Promise((resolve, reject) => {
-                this.connection.run(insertSQL, [title, description], function (err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(this.lastID);
-                    }
-                });
+        try {
+            const item = await this.LearningItem.create({
+                title,
+                description
             });
-        } else {
-            try {
-                const [result] = await this.connection.execute(insertSQL, [title, description]);
-                return result.insertId;
-            } catch (error) {
-                throw error;
-            }
+            return item.id;
+        } catch (error) {
+            this.logger.error('Failed to add learning item:', error);
+            throw error;
         }
     }
 
     async deleteLearningItem(id) {
-        const deleteSQL = 'DELETE FROM learning_items WHERE id = ?';
-
-        if (this.config.type === 'sqlite') {
-            return new Promise((resolve, reject) => {
-                this.connection.run(deleteSQL, [id], function (err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(this.changes);
-                    }
-                });
+        try {
+            const result = await this.LearningItem.destroy({
+                where: { id }
             });
-        } else {
-            try {
-                const [result] = await this.connection.execute(deleteSQL, [id]);
-                return result.affectedRows;
-            } catch (error) {
-                throw error;
-            }
+            return result;
+        } catch (error) {
+            this.logger.error('Failed to delete learning item:', error);
+            throw error;
         }
     }
 
     async resolveItem(id) {
-        const updateSQL = 'UPDATE learning_items SET resolved = TRUE, status = "completed" WHERE id = ?';
-
-        if (this.config.type === 'sqlite') {
-            return new Promise((resolve, reject) => {
-                this.connection.run(updateSQL, [id], function (err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(this.changes);
-                    }
-                });
-            });
-        } else {
-            try {
-                const [result] = await this.connection.execute(updateSQL, [id]);
-                return result.affectedRows;
-            } catch (error) {
-                throw error;
-            }
+        try {
+            const result = await this.LearningItem.update(
+                {
+                    resolved: true,
+                    status: 'completed'
+                },
+                {
+                    where: { id }
+                }
+            );
+            return result[0]; // Returns number of affected rows
+        } catch (error) {
+            this.logger.error('Failed to resolve learning item:', error);
+            throw error;
         }
     }
 
     async unresolveItem(id) {
-        const updateSQL = 'UPDATE learning_items SET resolved = FALSE, status = "todo" WHERE id = ?';
-
-        if (this.config.type === 'sqlite') {
-            return new Promise((resolve, reject) => {
-                this.connection.run(updateSQL, [id], function (err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(this.changes);
-                    }
-                });
-            });
-        } else {
-            try {
-                const [result] = await this.connection.execute(updateSQL, [id]);
-                return result.affectedRows;
-            } catch (error) {
-                throw error;
-            }
+        try {
+            const result = await this.LearningItem.update(
+                {
+                    resolved: false,
+                    status: 'todo'
+                },
+                {
+                    where: { id }
+                }
+            );
+            return result[0]; // Returns number of affected rows
+        } catch (error) {
+            this.logger.error('Failed to unresolve learning item:', error);
+            throw error;
         }
     }
 
     async updateItemStatus(id, status) {
-        const updateSQL = 'UPDATE learning_items SET status = ?, resolved = ? WHERE id = ?';
-        const resolved = status === 'completed';
-
-        if (this.config.type === 'sqlite') {
-            return new Promise((resolve, reject) => {
-                this.connection.run(updateSQL, [status, resolved, id], function (err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(this.changes);
-                    }
-                });
-            });
-        } else {
-            try {
-                const [result] = await this.connection.execute(updateSQL, [status, resolved, id]);
-                return result.affectedRows;
-            } catch (error) {
-                throw error;
-            }
+        try {
+            const resolved = status === 'completed';
+            const result = await this.LearningItem.update(
+                {
+                    status,
+                    resolved
+                },
+                {
+                    where: { id }
+                }
+            );
+            return result[0]; // Returns number of affected rows
+        } catch (error) {
+            this.logger.error('Failed to update item status:', error);
+            throw error;
         }
     }
 
     async updateItemOrder(id, orderIndex) {
-        const updateSQL = 'UPDATE learning_items SET order_index = ? WHERE id = ?';
-
-        if (this.config.type === 'sqlite') {
-            return new Promise((resolve, reject) => {
-                this.connection.run(updateSQL, [orderIndex, id], function (err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(this.changes);
-                    }
-                });
-            });
-        } else {
-            try {
-                const [result] = await this.connection.execute(updateSQL, [orderIndex, id]);
-                return result.affectedRows;
-            } catch (error) {
-                throw error;
-            }
+        try {
+            const result = await this.LearningItem.update(
+                {
+                    order_index: orderIndex
+                },
+                {
+                    where: { id }
+                }
+            );
+            return result[0]; // Returns number of affected rows
+        } catch (error) {
+            this.logger.error('Failed to update item order:', error);
+            throw error;
         }
     }
 

@@ -1011,6 +1011,11 @@
                 </div>
                 <div class="status-item">
                     <span></span>
+                    <span class="status-item-label">Version</span>
+                    <span class="status-item-value" id="panel-frontend-version">-</span>
+                </div>
+                <div class="status-item">
+                    <span></span>
                     <span class="status-item-label">Mode</span>
                     <span class="status-item-value"><%= mode %></span>
                 </div>
@@ -1031,6 +1036,11 @@
                     <span class="status-item-value" id="panel-backend-hostname">
                         <%= backendHostname || frontendHostname %>
                     </span>
+                </div>
+                <div class="status-item">
+                    <span></span>
+                    <span class="status-item-label">Version</span>
+                    <span class="status-item-value" id="panel-backend-version">-</span>
                 </div>
             </div>
             
@@ -1080,6 +1090,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             initializeDragAndDrop();
             initializeModal();
+            checkFrontendVersion();
             checkBackendHealth();
             setInterval(checkBackendHealth, 5000); // Check every 5 seconds
         });
@@ -1089,6 +1100,21 @@
             const toggle = panel.querySelector('.status-toggle');
             panel.classList.toggle('collapsed');
             toggle.textContent = panel.classList.contains('collapsed') ? '◀' : '▶';
+        }
+
+        async function checkFrontendVersion() {
+            try {
+                const response = await fetch('/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    const panelFrontendVersion = document.getElementById('panel-frontend-version');
+                    if (panelFrontendVersion && data.version) {
+                        panelFrontendVersion.textContent = data.version;
+                    }
+                }
+            } catch (error) {
+                console.log('Could not fetch frontend version:', error);
+            }
         }
 
         async function checkBackendHealth() {
@@ -1139,6 +1165,12 @@
                     }
                     if (panelBackendHostname && data.hostname) {
                         panelBackendHostname.textContent = data.hostname;
+                    }
+                    
+                    // Update backend version
+                    const panelBackendVersion = document.getElementById('panel-backend-version');
+                    if (panelBackendVersion && data.version) {
+                        panelBackendVersion.textContent = data.version;
                     }
                     
                     // Update panel database status
