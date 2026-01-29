@@ -3,13 +3,15 @@ const path = require('path');
 const winston = require('winston');
 const axios = require('axios');
 const Database = require('./database');
+const metricsCollector = require('./metrics');
 
 // Configuration with defaults and environment variable support
 const config = {
   mode: process.env.APP_MODE || 'all-in-one', // 'all-in-one', 'frontend', 'api'
   version: process.env.APP_VERSION || 'dev', // Application version from build
   apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000', // Used in frontend mode
-  port: process.env.PORT || 3000,
+  port: parseInt(process.env.PORT || 3000, 10),
+  metricsPort: process.env.METRICS_PORT ? parseInt(process.env.METRICS_PORT, 10) : null, // Separate metrics port (optional)
   database: {
     type: process.env.DB_TYPE || 'sqlite',
     host: process.env.DB_HOST || 'localhost',
@@ -65,6 +67,8 @@ const app = express();
 let db = null;
 if (config.mode === 'api' || config.mode === 'all-in-one') {
   db = new Database(config.database, logger);
+  // Wrap database methods for metrics tracking
+  db = instrumentDatabase(db, metricsCollector);
 }
 
 // API client for frontend mode
@@ -79,6 +83,91 @@ const apiClient = axios.create({
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Metrics tracking middleware - track all HTTP requests
+app.use((req, res, next) => {
+  const startTime = process.hrtime.bigint();
+
+  // Capture response finish event
+  res.on('finish', () => {
+    const endTime = process.hrtime.bigint();
+    const durationSeconds = Number(endTime - startTime) / 1e9;
+
+    // Normalize route for better cardinality
+    const route = normalizeRoute(req.route?.path || req.path);
+
+    metricsCollector.recordHttpRequest(
+      req.method,
+      route,
+      res.statusCode,
+      durationSeconds
+    );
+  });
+
+  next();
+});
+
+// Helper function to normalize routes
+function normalizeRoute(path) {
+  // Replace numeric IDs with :id to avoid unbounded cardinality
+  return path
+    .replace(/\/\d+/g, '/:id')
+    .replace(/\/\d+\//g, '/:id/');
+}
+
+// Database instrumentation wrapper
+function instrumentDatabase(db, metrics) {
+  const originalMethods = {
+    getAllLearningItems: db.getAllLearningItems.bind(db),
+    addLearningItem: db.addLearningItem.bind(db),
+    deleteLearningItem: db.deleteLearningItem.bind(db),
+    resolveItem: db.resolveItem.bind(db),
+    unresolveItem: db.unresolveItem.bind(db),
+    updateItemStatus: db.updateItemStatus.bind(db),
+    updateItemOrder: db.updateItemOrder.bind(db),
+    reorderItems: db.reorderItems.bind(db)
+  };
+
+  // Map methods to CRUD operations
+  const operationMap = {
+    getAllLearningItems: 'read',
+    addLearningItem: 'create',
+    deleteLearningItem: 'delete',
+    resolveItem: 'update',
+    unresolveItem: 'update',
+    updateItemStatus: 'update',
+    updateItemOrder: 'update',
+    reorderItems: 'update'
+  };
+
+  // Wrap each method with metrics tracking
+  Object.keys(originalMethods).forEach(methodName => {
+    db[methodName] = async function(...args) {
+      const startTime = process.hrtime.bigint();
+      let success = true;
+
+      try {
+        const result = await originalMethods[methodName](...args);
+        return result;
+      } catch (error) {
+        success = false;
+        throw error;
+      } finally {
+        const endTime = process.hrtime.bigint();
+        const durationSeconds = Number(endTime - startTime) / 1e9;
+
+        metrics.recordDbOperation(
+          operationMap[methodName],
+          methodName,
+          durationSeconds,
+          success
+        );
+      }
+    };
+  });
+
+  return db;
+}
 
 // CORS middleware for API mode
 if (config.mode === 'api') {
@@ -502,6 +591,33 @@ app.get('/api/health', (req, res) => {
   res.json(healthData);
 });
 
+// Metrics endpoint handler (reusable)
+async function metricsHandler(req, res) {
+  try {
+    // Update application-specific metrics before serving
+    if (db) {
+      try {
+        await metricsCollector.updateItemsByStatus(db);
+        metricsCollector.updatePoolMetrics(db.sequelize);
+      } catch (error) {
+        logger.error('Error updating metrics:', error);
+      }
+    }
+
+    res.set('Content-Type', metricsCollector.register.contentType);
+    const metrics = await metricsCollector.getMetrics();
+    res.end(metrics);
+  } catch (error) {
+    logger.error('Error serving metrics:', error);
+    res.status(500).end('Error generating metrics');
+  }
+}
+
+// Metrics endpoint on main app (available when METRICS_PORT is not set)
+if (!config.metricsPort) {
+  app.get('/metrics', metricsHandler);
+}
+
 // Initialize database and start server
 async function startServer() {
   try {
@@ -509,6 +625,16 @@ async function startServer() {
     if (db) {
       await db.initialize();
       logger.info('Database initialized successfully');
+
+      // Start periodic metrics update (every 30 seconds)
+      setInterval(async () => {
+        try {
+          await metricsCollector.updateItemsByStatus(db);
+          metricsCollector.updatePoolMetrics(db.sequelize);
+        } catch (error) {
+          logger.error('Error updating periodic metrics:', error);
+        }
+      }, 30000);
     } else {
       logger.info('Running in frontend-only mode, no database initialization');
     }
@@ -527,6 +653,24 @@ async function startServer() {
         console.log(`Connecting to API at: ${config.apiBaseUrl}`);
       }
     });
+
+    // Start separate metrics server if METRICS_PORT is configured
+    if (config.metricsPort) {
+      const metricsApp = express();
+      metricsApp.get('/metrics', metricsHandler);
+
+      // Health check on metrics port
+      metricsApp.get('/health', (req, res) => {
+        res.json({ status: 'healthy', service: 'metrics' });
+      });
+
+      metricsApp.listen(config.metricsPort, () => {
+        logger.info(`Metrics server running on port ${config.metricsPort}`);
+        console.log(`Metrics available at http://localhost:${config.metricsPort}/metrics`);
+      });
+    } else {
+      console.log(`Metrics available at http://localhost:${config.port}/metrics`);
+    }
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
