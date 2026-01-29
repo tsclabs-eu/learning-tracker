@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/tsclabs-eu/learning-tracker/compare/v1.1.0...v1.2.0) (2026-01-29)
+
+
+### Features
+
+* add metrics ([7d336e4](https://github.com/tsclabs-eu/learning-tracker/commit/7d336e41822c60489b422877f0a77f7d4b6c77bc))
+* add postgres implementation ([7d0f880](https://github.com/tsclabs-eu/learning-tracker/commit/7d0f880526bfadd2c1b2736c42c7a94b7b8eff62))
+
 ## [1.1.0](https://github.com/tsclabs-eu/learning-tracker/compare/v1.0.5...v1.1.0) (2025-10-10)
 
 
