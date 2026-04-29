@@ -106,11 +106,6 @@ docker run -p 8080:8080 -e API_BASE_URL=http://api:3000 learning-tracker:fronten
 
 ## Kubernetes Deployment
 
-Example manifests are provided for:
-- All-in-one deployment: `learning-tracker-deployment.yaml`
-- Database: `mariadb-deployment.yaml`
-- Pod example: `learning-tracker-pod.yaml`
-
 ### Multi-Replica Deployments
 
 When deploying with multiple API replicas (horizontal scaling), be aware of the following considerations:
@@ -135,92 +130,6 @@ When deploying with multiple API replicas (horizontal scaling), be aware of the 
 - Robust transaction handling and ACID compliance
 - Excellent performance for concurrent reads and writes
 - Recommended for production deployments with horizontal scaling
-
-#### Configuration Example
-
-```yaml
-# api-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: learning-tracker-api
-spec:
-  replicas: 3  # Multiple replicas supported with MySQL
-  template:
-    spec:
-      containers:
-      - name: api
-        image: ghcr.io/tsclabs-eu/learning-tracker-api:latest
-        env:
-        - name: APP_MODE
-          value: "api"
-        - name: DB_TYPE
-          value: "mysql"  # Use MySQL for multi-replica
-        - name: DB_HOST
-          value: "mariadb-service"
-        - name: DB_NAME
-          value: "learning_tracker"
-        - name: DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: username
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: password
-```
-
-#### PostgreSQL Configuration Example
-
-```bash
-# Running with PostgreSQL
-docker run -p 3000:3000 \
-  -e DB_TYPE=postgresql \
-  -e DB_HOST=postgres-server \
-  -e DB_PORT=5432 \
-  -e DB_NAME=learning_tracker \
-  -e DB_USER=postgres \
-  -e DB_PASSWORD=yourpassword \
-  learning-tracker:api
-```
-
-```yaml
-# Kubernetes deployment with PostgreSQL
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: learning-tracker-api
-spec:
-  replicas: 3
-  template:
-    spec:
-      containers:
-      - name: api
-        image: ghcr.io/tsclabs-eu/learning-tracker-api:latest
-        env:
-        - name: APP_MODE
-          value: "api"
-        - name: DB_TYPE
-          value: "postgresql"
-        - name: DB_HOST
-          value: "postgresql-service"
-        - name: DB_PORT
-          value: "5432"
-        - name: DB_NAME
-          value: "learning_tracker"
-        - name: DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: username
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: password
-```
 
 #### Schema Migrations
 
